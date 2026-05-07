@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.OleDb;
 using System.Data.SQLite;
 using System.IO;
@@ -33,7 +34,19 @@ namespace AccessToSqlConverter
 
         public Form1()
         {
+            //Initialize Environment
+            myPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            string fullFileName = myPath + @"\" + ClsConstants.DBUG_FILENAME;
+            GlbData.SetDbugFileName = fullFileName;
+            File.WriteAllText(fullFileName, "");
+
+            //Create SQLite database connection string
+            sqlDbFilePath = System.Environment.CurrentDirectory + @"\dbSatDetails.db; Version = 3; New = True; Compress = True;";
+            sqlDb.ConnectionString = "Data Source = " + sqlDbFilePath;
+
             InitializeComponent();
+            lblSelectedDatabase.Text = "";
+            tsLabel1.Text = "SQLite Db Connection String > " + sqlDbFilePath;
         }
 
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
@@ -67,7 +80,8 @@ namespace AccessToSqlConverter
 
         }
 
-        private void SelectAccessDb(object sender, EventArgs e)
+        private void btnSelectAccessDb_Click(object sender, EventArgs e)
+
         {
             //Initialise User Interface
 
@@ -81,7 +95,7 @@ namespace AccessToSqlConverter
             //Open channel to database
             OpenFileDialog accessDbFileLocation = new OpenFileDialog
             {
-                InitialDirectory = @"V:\Documents\GitHub\C# Projects\accessDb",
+                InitialDirectory = @"V:\Documents\GitHub\C# Projects\AccessToSqlConverter",
                 Filter = "Access DB (*.accdb)|*.accdb"
             };
             if (accessDbFileLocation.ShowDialog() == DialogResult.OK)
@@ -125,6 +139,166 @@ namespace AccessToSqlConverter
             {
                 lblSelectedDatabase.Text = "Invalid Database File";
             }
+
         }
+
+        private void btnDbImport_Click(object sender, EventArgs e)
+        {
+            if (lblSelectedDatabase.Text != string.Empty)
+            {
+                //Translate XML definitions into SQLite database tables
+                //ReadDbXmlDefinitions();
+
+                //Generate SQLite database based on contents of selected Access databse
+                StoreAccesDbStructure(lblSelectedDatabase.Text);
+            }
+            else
+            {
+                MessageBox.Show("Invalid Database Name", "User Error", MessageBoxButtons.OK);
+            }
+        }
+        private void StoreAccesDbStructure(string accessDb)
+        {
+            string tableName = string.Empty;
+            string fieldName = string.Empty;
+
+            string[] tableRestrictions = new string[4];
+            tableRestrictions[3] = "TABLE";
+
+            //Open stream to access db
+
+            //Construct access db connection string
+            string path = Environment.CurrentDirectory;
+            path = lblSelectedDatabase.Text;
+            connAccessDb = new OleDbConnection(@"Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + path);
+
+            //Get Access DB table definitions
+            connAccessDb.Open();
+            DataTable tables = connAccessDb.GetSchema("Tables", tableRestrictions);
+            DataRow tblNameRow = tables.Rows[0];
+            tableName = tblNameRow["TABLE_NAME"].ToString();
+
+            //Get each of the field names, field types and enumurated OLE field type
+
+            string[] colRestrictions = new string[] { null, null, tableName, null };
+            DataTable columns = connAccessDb.GetSchema("Columns", colRestrictions);
+
+            foreach (DataRow row in columns.Select("", "ORDINAL_POSITION"))
+            {
+
+                clsDbTableFields temp = new clsDbTableFields();
+                temp.fieldName = (string)(row["COLUMN_NAME"]);
+                temp.fieldType = Convert.ToInt32(row["DATA_TYPE"]);
+                temp.oleFieldType = (OleDbType)temp.fieldType;
+
+                lstDbTableField.Add(temp);
+            }
+
+            //Create SQlite DB based on contents of Access DB
+
+            genSqlLiteDb(tableName, lstDbTableField);
+        }
+
+        //Generate SQLite database tables and associated fields based on selected Access database
+        private void genSqlLiteDb(string tblName, List<clsDbTableFields> accessDbDefintions)
+        {
+
+            //Query database for table name
+            sqlDb.SqlQry.SqlText = "SELECT name FROM sqlite_master WHERE type = 'table' AND name='" + tblName + "'";
+            sqlDb.Select("sqlite_master");
+
+            if (sqlDb.SqlQry.RecordCount == 0)
+            {
+                //Data table does not exist - create data table and associated fields
+                sqlDb.SqlQry.SqlText = "CREATE table " + tblName + " (id integer primary key)";
+                sqlDb.Update();
+                if (sqlDb.SqlQry.OpStatus != ClsConstants.DB_SUCCESS)
+                {
+                    TerminateApp("Error Detected Creating Database Table " + tblName);
+                }
+
+
+                //Field definitions
+                foreach (clsDbTableFields field in accessDbDefintions)
+                {
+                    //Check field exists by query
+                    sqlDb.SqlQry.SqlText = "SELECT [" + field.fieldName + "] FROM " + tblName;
+
+                    sqlDb.Select(tblName);
+
+                    if (sqlDb.SqlQry.OpStatus != ClsConstants.DB_SUCCESS)
+                    {
+                        sqlDb.SqlQry.SqlText = "ALTER TABLE " + tblName + " ADD COLUMN " + field.fieldName + " " + field.oleFieldType + ";";
+                        sqlDb.Update();
+                    }
+
+                }
+
+                //SQLite database now created sequentially read Access db records and store in SQLite db
+
+                //QueryAccess db for all records
+                DataSet dsAccessRecords;
+
+                oleDb.SqlQry.SqlText = "Select * From " + tblName;
+                dsAccessRecords = oleDb.Select(tblName);
+
+                if (oleDb.SqlQry.OpStatus == ClsConstants.DB_SUCCESS)
+                {
+                    string updateQry = string.Empty;
+                    string colNames = string.Empty;
+                    string colValues = string.Empty;
+
+                    int rowCnt = 0;
+
+                    bool firstPass = true;
+
+                    //Build field and field value strings
+                    foreach (DataRow row in dsAccessRecords.Tables[0].Rows)
+                    {
+                        rowCnt++;
+                        tsLabel1.Text = "Processing Row " + rowCnt;
+                        statusStrip1.Refresh();
+
+                        //Build SQL UPDATE query command
+                        for (int i = 0; i < dsAccessRecords.Tables[0].Columns.Count; i++)
+                        {
+
+                            object v = row[i];
+                            colValues += v + ",";
+
+                            if (firstPass)
+                            {
+                                string c = dsAccessRecords.Tables[0].Columns[i].ColumnName;
+                                colNames += c + ",";
+                            }
+                        }
+                        if (firstPass)
+                        {
+                            //Remove trailing "," delimter
+                            colNames = colNames.Substring(0, colNames.Length - 1);
+                        }
+                        firstPass = false;
+
+                        colValues = colValues.Substring(0, colValues.Length - 1);
+                        //Complete SQL insert command
+                        updateQry += "INSERT INTO " + tblName + " (" + colNames + ")";
+                        updateQry += "VALUES (" + colValues + ");";
+
+                    }
+                }
+                else
+                {
+                    MessageBox.Show(oleDb.SqlQry.ErrorMsg);
+                }
+
+            }
+            else
+            {
+                MessageBox.Show("SQLite Database Already Exists");
+            }
+
+        }
+
+
     }
 }
