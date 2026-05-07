@@ -1,0 +1,32 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace AccessToSqlConverter
+{
+    class ClsConstants
+    {
+        //Database Constant declarations
+        public const int DISCONNECT_FAILED = -1;
+        public const int DISCONNECT_OK = 0;
+        public const int DB_INSERT_FAILED = -1;
+        public const int DB_UPDATE_FAILED = -1;
+        public const int DB_INSERT = 2;
+        public const int DB_UPDATE_MODE = 1;
+        public const int DB_INSERT_MODE = 2;
+        public const int DB_SUCCESS = 0;
+        public const int DB_FAIL = -1;
+
+        //Database table name constants
+        public const string TBL_PROC_ID = "tblProcessId";
+
+        //XML Constants
+        public const string DATABASE = "//Definitions/Database";
+        public const string DATA_TABLES = "//Definitions/Database/Tables";
+
+        //Debug Constants
+        public const string DBUG_FILENAME = "dbConverter";
+    }
+}
