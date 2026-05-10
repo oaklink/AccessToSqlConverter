@@ -11,7 +11,6 @@ namespace AccessToSqlConverter
     public partial class Form1 : Form
     {
         //List definitions
-        List<ClsDbTableDef> dbTableDefinitions = new List<ClsDbTableDef>();
         List<int> oldExcelIDs = new List<int>();
         List<clsDbTableFields> lstDbTableField = new List<clsDbTableFields>();
 
@@ -57,7 +56,6 @@ namespace AccessToSqlConverter
         private void TerminateApp(string msg)
         {
             //List definitions
-            List<ClsDbTableDef> dbTableDefinitions = new List<ClsDbTableDef>();
             List<int> oldExcelIDs = new List<int>();
             List<clsDbTableFields> lstDbTableField = new List<clsDbTableFields>();
 
@@ -191,6 +189,24 @@ namespace AccessToSqlConverter
                 temp.fieldType = Convert.ToInt32(row["DATA_TYPE"]);
                 temp.oleFieldType = (OleDbType)temp.fieldType;
 
+                //Add delimter to class
+                switch (temp.fieldType)
+                {
+                    case 3:
+                    case 5:
+                    case 7:
+                    case 11:
+                        //Null delimiter
+                        temp.delimiter = string.Empty;
+                        break;
+
+                    case 130:
+                        //WChar - delimiter = '
+                        temp.delimiter = "'";
+                        break;
+
+                }
+
                 lstDbTableField.Add(temp);
             }
 
@@ -217,7 +233,6 @@ namespace AccessToSqlConverter
                     TerminateApp("Error Detected Creating Database Table " + tblName);
                 }
 
-
                 //Field definitions
                 foreach (clsDbTableFields field in accessDbDefintions)
                 {
@@ -239,7 +254,7 @@ namespace AccessToSqlConverter
                 //QueryAccess db for all records
                 DataSet dsAccessRecords;
 
-                oleDb.SqlQry.SqlText = "Select * From " + tblName;
+                oleDb.SqlQry.SqlText = "Select * From " + tblName + " Order By [ID]";
                 dsAccessRecords = oleDb.Select(tblName);
 
                 if (oleDb.SqlQry.OpStatus == ClsConstants.DB_SUCCESS)
@@ -262,13 +277,38 @@ namespace AccessToSqlConverter
                         //Build SQL UPDATE query command
                         for (int i = 0; i < dsAccessRecords.Tables[0].Columns.Count; i++)
                         {
-
                             object v = row[i];
+
+                            string c = dsAccessRecords.Tables[0].Columns[i].ColumnName;
+                            string dt = dsAccessRecords.Tables[0].Columns[i].DataType.ToString();
+                            string delimiter = string.Empty;
+
+                            //Add delimter to class
+                            switch (dt)
+                            {
+                                case ClsConstants.dtBoolean:
+                                case ClsConstants.dtDouble:
+                                case ClsConstants.dtInt32:
+                                    //Null delimiter
+                                    delimiter = string.Empty;
+                                    break;
+
+                                case ClsConstants.dtString:
+                                case ClsConstants.dtDateTime:
+                                    //WChar - delimiter = '
+                                    delimiter = "'";
+                                    break;
+
+                                default:
+                                    MessageBox.Show("Invalid Data Type In Access DB Definition");
+                                    break;
+
+                            }
+                            v = delimiter + v + delimiter;
                             colValues += v + ",";
 
                             if (firstPass)
                             {
-                                string c = dsAccessRecords.Tables[0].Columns[i].ColumnName;
                                 colNames += c + ",";
                             }
                         }
@@ -281,9 +321,12 @@ namespace AccessToSqlConverter
 
                         colValues = colValues.Substring(0, colValues.Length - 1);
                         //Complete SQL insert command
+    
                         updateQry += "INSERT INTO " + tblName + " (" + colNames + ")";
                         updateQry += "VALUES (" + colValues + ");";
 
+                        sqlDb.SqlQry.SqlText = updateQry;
+                        sqlDb.Update();
                     }
                 }
                 else

@@ -28,5 +28,12 @@ namespace AccessToSqlConverter
 
         //Debug Constants
         public const string DBUG_FILENAME = "dbConverter";
+
+        //Access database data types
+        public const string dtInt32 = "System.Int32";
+        public const string dtString = "System.String";
+        public const string dtDouble = "System.Double";
+        public const string dtBoolean = "System.Boolean";
+        public const string dtDateTime = "System.DateTime";
     }
 }

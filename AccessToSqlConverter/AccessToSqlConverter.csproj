@@ -78,7 +78,6 @@
   <ItemGroup>
     <Compile Include="clsConstants.cs" />
     <Compile Include="clsDatabase.cs" />
-    <Compile Include="clsDbTableDef.cs" />
     <Compile Include="clsDbTableFields.cs" />
     <Compile Include="clsDebug.cs" />
     <Compile Include="ClsGlobal.cs" />

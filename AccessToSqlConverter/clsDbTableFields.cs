@@ -12,6 +12,7 @@ namespace AccessToSqlConverter
         private string _fieldName;
         private int _fieldType;
         private OleDbType _oleFieldType;
+        private string _delimiter;
 
         public string fieldName
         {
@@ -22,14 +23,19 @@ namespace AccessToSqlConverter
         public int fieldType
         {
             get { return _fieldType; }
-            set { _fieldType = value;
-            }
-            
+            set { _fieldType = value; }
         }
         public OleDbType oleFieldType
         {
             get { return _oleFieldType; }
             set { _oleFieldType = (OleDbType)fieldType; }
         }
+
+        public string delimiter
+        {
+            get { return _delimiter; }
+            set { _delimiter = value; }
+        }
+
     }
 }
