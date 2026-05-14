@@ -270,6 +270,9 @@ namespace AccessToSqlConverter
                     //Build field and field value strings
                     foreach (DataRow row in dsAccessRecords.Tables[0].Rows)
                     {
+                        //Initialise column values part of SQL insert command
+                        colValues = string.Empty;
+
                         rowCnt++;
                         tsLabel1.Text = "Processing Row " + rowCnt;
                         statusStrip1.Refresh();
@@ -294,8 +297,25 @@ namespace AccessToSqlConverter
                                     break;
 
                                 case ClsConstants.dtString:
-                                case ClsConstants.dtDateTime:
                                     //WChar - delimiter = '
+                                    delimiter = "'";
+                                    break;
+
+                                case ClsConstants.dtDateTime:
+                                    //DateTime - delimiter = '
+                                    //Aditional code to process null values
+
+                                    DateTime temp;
+                                    if (v != DBNull.Value)
+                                    { 
+                                        temp = (DateTime) v;
+                                        v = temp.ToString("yyyy-MM-dd HH:mm:ss");
+                                    }
+                                    else
+                                    {
+                                        //Set dummy time
+                                        v = "2000-01-01 00:00:00";
+                                    }
                                     delimiter = "'";
                                     break;
 
@@ -322,7 +342,7 @@ namespace AccessToSqlConverter
                         colValues = colValues.Substring(0, colValues.Length - 1);
                         //Complete SQL insert command
     
-                        updateQry += "INSERT INTO " + tblName + " (" + colNames + ")";
+                        updateQry = "INSERT INTO " + tblName + " (" + colNames + ")";
                         updateQry += "VALUES (" + colValues + ");";
 
                         sqlDb.SqlQry.SqlText = updateQry;

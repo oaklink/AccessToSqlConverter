@@ -35,5 +35,8 @@ namespace AccessToSqlConverter
         public const string dtDouble = "System.Double";
         public const string dtBoolean = "System.Boolean";
         public const string dtDateTime = "System.DateTime";
+
+        //Length of date/time to capture only date portion
+        public const int iDateLen = 10;
     }
 }
