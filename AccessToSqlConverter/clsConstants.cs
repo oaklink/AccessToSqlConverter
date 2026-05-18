@@ -30,11 +30,18 @@ namespace AccessToSqlConverter
         public const string DBUG_FILENAME = "dbConverter";
 
         //Access database data types
-        public const string dtInt32 = "System.Int32";
-        public const string dtString = "System.String";
-        public const string dtDouble = "System.Double";
-        public const string dtBoolean = "System.Boolean";
-        public const string dtDateTime = "System.DateTime";
+        public const string oleDtInt32 = "System.Int32";
+        public const string oleDtString = "System.String";
+        public const string oleDtDouble = "System.Double";
+        public const string oleDtBoolean = "System.Boolean";
+        public const string oleDtDateTime = "System.DateTime";
+
+        //SQLite database data types
+        public const int sqlInteger = 3;
+        public const int sqlDouble = 5;
+        public const int sqlBoolean = 11;
+        public const int sqlDate = 7;
+        public const int sqlWChar = 130;
 
         //Length of date/time to capture only date portion
         public const int iDateLen = 10;

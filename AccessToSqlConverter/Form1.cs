@@ -144,8 +144,6 @@ namespace AccessToSqlConverter
         {
             if (lblSelectedDatabase.Text != string.Empty)
             {
-                //Translate XML definitions into SQLite database tables
-                //ReadDbXmlDefinitions();
 
                 //Generate SQLite database based on contents of selected Access databse
                 StoreAccesDbStructure(lblSelectedDatabase.Text);
@@ -189,19 +187,27 @@ namespace AccessToSqlConverter
                 temp.fieldType = Convert.ToInt32(row["DATA_TYPE"]);
                 temp.oleFieldType = (OleDbType)temp.fieldType;
 
+                if (temp.oleFieldType == OleDbType.Date)
+                {
+                    temp.fieldType = 130;
+                    temp.oleFieldType = OleDbType.WChar;
+                }
+
                 //Add delimter to class
                 switch (temp.fieldType)
                 {
-                    case 3:
-                    case 5:
-                    case 7:
-                    case 11:
+                    case ClsConstants.sqlInteger: // Integer
+                    case ClsConstants.sqlDouble: // Double
+                    case ClsConstants.sqlBoolean: // Boolean
+
                         //Null delimiter
                         temp.delimiter = string.Empty;
                         break;
 
-                    case 130:
-                        //WChar - delimiter = '
+                    case ClsConstants.sqlDate: //Date - handle as string
+                    case ClsConstants.sqlWChar: //WChar
+
+                        //delimiter = '
                         temp.delimiter = "'";
                         break;
 
@@ -243,6 +249,10 @@ namespace AccessToSqlConverter
 
                     if (sqlDb.SqlQry.OpStatus != ClsConstants.DB_SUCCESS)
                     {
+                        if (field.oleFieldType == OleDbType.Date)
+                            field.oleFieldType = OleDbType.WChar;
+
+                        //    field.oleFieldType = ClsConstants.oleDtString;
                         sqlDb.SqlQry.SqlText = "ALTER TABLE " + tblName + " ADD COLUMN " + field.fieldName + " " + field.oleFieldType + ";";
                         sqlDb.Update();
                     }
@@ -289,33 +299,16 @@ namespace AccessToSqlConverter
                             //Add delimter to class
                             switch (dt)
                             {
-                                case ClsConstants.dtBoolean:
-                                case ClsConstants.dtDouble:
-                                case ClsConstants.dtInt32:
+                                case ClsConstants.oleDtBoolean:
+                                case ClsConstants.oleDtDouble:
+                                case ClsConstants.oleDtInt32:
                                     //Null delimiter
                                     delimiter = string.Empty;
                                     break;
 
-                                case ClsConstants.dtString:
+                                case ClsConstants.oleDtString:
+                                case ClsConstants.oleDtDateTime:
                                     //WChar - delimiter = '
-                                    delimiter = "'";
-                                    break;
-
-                                case ClsConstants.dtDateTime:
-                                    //DateTime - delimiter = '
-                                    //Aditional code to process null values
-
-                                    DateTime temp;
-                                    if (v != DBNull.Value)
-                                    { 
-                                        temp = (DateTime) v;
-                                        v = temp.ToString("yyyy-MM-dd HH:mm:ss");
-                                    }
-                                    else
-                                    {
-                                        //Set dummy time
-                                        v = "2000-01-01 00:00:00";
-                                    }
                                     delimiter = "'";
                                     break;
 
