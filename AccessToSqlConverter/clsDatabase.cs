@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.OleDb;
 using System.Data.SQLite;
@@ -230,6 +231,40 @@ namespace AccessToSqlConverter
             }
 
             return retVal;
+
+        }
+
+        //Database List Table Fields
+        public List<string> readTableFilelds(string tblName)
+        {
+            var retList = new List<string>();
+
+            //Update databse
+            try
+            {
+                Connect();
+
+                //Initialise restricitions
+                var sqlSchemaTable = dbConnection.GetSchema("Columns", new[] { null, null, tblName, null });
+
+                //Populate return variable
+                foreach (DataRow row in sqlSchemaTable.Rows)
+                {
+                    retList.Add(row["COLUMN_NAME"].ToString());
+                }
+                Disconnect();
+            }
+            catch (Exception err)
+            {
+                SqlQry.OpStatus = -1;
+                SqlQry.ErrorMsg = err.Message;
+                ErrMessage = err.Message;
+                dbug.AddToDebug(SqlQry.SqlText + Environment.NewLine + ErrMessage);
+                retList.Add(ClsConstants.DB_UPDATE_FAILED.ToString());
+                Disconnect();
+            }
+
+            return retList;
 
         }
 

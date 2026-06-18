@@ -325,6 +325,8 @@ namespace AccessToSqlConverter
                                 colNames += c + ",";
                             }
                         }
+
+                        //Only build column sql on first record
                         if (firstPass)
                         {
                             //Remove trailing "," delimter
@@ -350,11 +352,30 @@ namespace AccessToSqlConverter
             }
             else
             {
+                //If SQLite database exists check that current and new database schema are the same
+                validateDbSchema(lstDbTableField, tblName);
+
                 MessageBox.Show("SQLite Database Already Exists");
             }
 
         }
 
+        private bool validateDbSchema(List<clsDbTableFields> accessDbFields, string tblName)
+        {
+            List<clsDbTableFields> lstOleDbDef = new List<clsDbTableFields>();
+            List<clsDbTableFields> lstSqlDbDef = new List<clsDbTableFields>();
+
+            bool retVal = false;
+
+            //Compare each OLE DB field to the SQL field - note database fields do not need to be in the same order
+            //If OLE db field does not exist in SQL db - create it
+            //If SQL db field does not exist in OLE db request confirm deltion of field
+
+
+
+            sqlDb.readTableFilelds(tblName);
+            return retVal;
+        }
 
     }
 }
